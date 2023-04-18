@@ -1,8 +1,11 @@
 package com.example.password_cracker;// java.io for reading the txt files, java.util.scanner for taking user input
+import javafx.scene.effect.ImageInput;
+
 import java.io.*;
 import java.util.*;
 
 public class PasswordSearch {
+    private static boolean matchFound = false;
     public static double time;
     public static int status = 0;
 
@@ -20,7 +23,6 @@ public class PasswordSearch {
 
         //try and catch for error exception 
         try {
-            System.out.println("made TRY");
             //open file and store into bufferedReader
             File file = new File("src/main/java/com/example/password_cracker/wordlist.txt");
             FileReader fileReader = new FileReader(file);
@@ -34,13 +36,12 @@ public class PasswordSearch {
             double start = System.currentTimeMillis();
             double end = System.currentTimeMillis();
             while ((line = bufferedReader.readLine()) != null) {
-                System.out.println("Made While");
                 attempts[0] += 1;
                 //compares each word in wordlist to the inputted password, and if true prints the line it was found on then exits the loop
                 if (line.equals(wordToSearch)) {
                     wordFound = true;
                     end = System.currentTimeMillis();
-                    time = end-start;
+                    time = (end-start)/1000;
                     status = 1;
                     return;
                 }
@@ -57,7 +58,7 @@ public class PasswordSearch {
                     if (line.equals(wordToSearch)) {
                         wordFound = true;
                         end = System.currentTimeMillis();
-                        time = end-start;
+                        time = (end-start)/1000;
                         status = 1;
                         return;
                     }
@@ -66,9 +67,20 @@ public class PasswordSearch {
 
             //if the word isn't found in the customWordList you can attempt a true brute force(will take a long time)
             if (!wordFound) {
+                if(wordToSearch.length() <= 5) {
+                    findMatches(wordToSearch);
+                    end = System.currentTimeMillis();
+                }
+                else {
+                    status = 2;
+                    return;
+                }
 
-                    time = end;
-
+            }
+            if (matchFound) {
+                time = (end - start) / 1000;
+                status = 1;
+                return;
             }
             status = 2;
 
@@ -84,67 +96,38 @@ public class PasswordSearch {
         }
     }
 
+
     //method for complete brute force checking every possible char
-    private static boolean findMatches(String word, int[] attempts) {
-        String characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{};:,.<>?";
+    public static void findMatches(String targetWord) {
+        double start = System.currentTimeMillis();
+        String characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{};:,.<>?"; // Characters to cycle through
+        int maxLength = targetWord.length();
 
-        for (int length = 1; length <= word.length(); length++) {
-            //generates the combinations for each word length
-            Iterator<String> iterator = generateCombinations(characters, length).iterator();
+        generateCombinations(characters, "", maxLength); // Generate combinations
 
-            while (iterator.hasNext()) {
-                attempts[0] += 1;
-                String combination = iterator.next();
-                if (combination.equals(word)) {
-                    return true;
-                }
-            }
+        double end = System.currentTimeMillis();
+
+
+        if (!matchFound) {
+            System.out.println("No match found.");
         }
-
-        return false;
     }
 
     //generates the combinations for each word length
-    private static Iterable<String> generateCombinations(String characters, int length) {
-        return new Iterable<String>() {
-            @Override
-            public Iterator<String> iterator() {
-                return new Iterator<String>() {
-                    private int[] indices = new int[length];
-                    private boolean done = false;
-
-                    @Override
-                    public boolean hasNext() {
-                        return !done;
-                    }
-
-                    @Override
-                    public String next() {
-                        String combination = "";
-
-                        for (int i = 0; i < length; i++) {
-                            combination += characters.charAt(indices[i]);
-                        }
-
-                        incrementIndices();
-
-                        return combination;
-                    }
-
-                    private void incrementIndices() {
-                        for (int i = length - 1; i >= 0; i--) {
-                            if (indices[i] < characters.length() - 1) {
-                                indices[i]++;
-                                return;
-                            } else {
-                                indices[i] = 0;
-                            }
-                        }
-
-                        done = true;
-                    }
-                };
+    private static void generateCombinations(String characters, String currentCombination, int maxLength) {
+        if(matchFound){
+            return;
+        }
+        if (currentCombination.length() == maxLength) { // Check if combination length matches target length
+            if (currentCombination.equals(ResultsController.password)) { // Check if current combination matches inputted word
+                System.out.println("Match found: " + currentCombination);
+                matchFound = true;
             }
-        };
+            return;
+        }
+
+        for (int i = 0; i < characters.length(); i++) {
+            generateCombinations(characters, currentCombination + characters.charAt(i), maxLength); // Recursive call
+        }
     }
 }
